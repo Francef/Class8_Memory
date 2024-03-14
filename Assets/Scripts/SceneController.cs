@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using System;
 
 public class SceneController : MonoBehaviour
 {
@@ -10,11 +12,25 @@ public class SceneController : MonoBehaviour
     [SerializeField] private Sprite[] cardImages;
     List<Card> cards;
 
+    [SerializeField] TextMeshProUGUI scoreText;
+
+    Card card1 = null;
+    Card card2 = null;
+    int score = 0;
+
+    private void Awake()
+    {
+        Messenger<Card>.AddListener(GameEvent.CARD_CLICKED, this.OnCardClicked);
+    }
+
+    private void OnDestroy()
+    {
+        Messenger<Card>.RemoveListener(GameEvent.CARD_CLICKED, this.OnCardClicked);
+    }
+
     private void Start()
     {
-        //Card card = CreateCard(cardSpawnPoint.position);
-        //int imageIndex = Random.Range(0, cardImages.Length);
-        //card.SetSprite(cardImages[imageIndex]);
+        scoreText.text = "Score: " + score;
         cards = CreateCards();
         AssignImagesToCards();
     }
@@ -54,13 +70,23 @@ public class SceneController : MonoBehaviour
         // create a list of paired image indices - the # of entries MUST match the # of cards.
         // eg: [0,0,1,1,2,2,3,3]
         List<int> imageIndices = new List<int>();
+
         for (int i = 0; i < cardImages.Length; i++)
         {
             imageIndices.Add(i);    // one index for the first card in the pair
             imageIndices.Add(i);    // one index for the second
         }
+        int r;
+        for (int i = 0; i < imageIndices.Count; i++)
+        {
+            int temp;
 
-        // *** TODO: write code to shuffle the list of image indices
+            r = UnityEngine.Random.Range(0, imageIndices.Count);
+            temp = imageIndices[i];
+            imageIndices[i] = imageIndices[r];
+            imageIndices[r] = temp;
+
+        }
 
         // Go through each card in the game and assign it an image based on the (shuffled) list of indices.
         for (int i = 0; i < cards.Count; i++)
@@ -70,8 +96,81 @@ public class SceneController : MonoBehaviour
         }
     }
 
-    public void CardClicked(Card card)
+    public void OnCardClicked(Card card)
     {
-        Debug.Log(this + "CardClicked()");
+        Debug.Log(this + ".OnCardClicked()");
+        //card.setFaceVisible(true);
+        if(card1 == null)   // no cards have been clicked
+        {
+            card1 = card;
+            card1.setFaceVisible(true);
+        } else if (card2 == null)   // one card has been clicked
+        {
+            card2 = card;
+            card2.setFaceVisible(true);
+            StartCoroutine(EvaluatePair());
+        }
+        else
+        {
+            Debug.Log("ignoring click");
+        }
     }
+
+    IEnumerator EvaluatePair()
+    {
+        if (card1.GetSprite() == card2.GetSprite())
+        {
+            Debug.Log("match");
+            score++;
+            scoreText.text = "Score: " + score;
+        }
+        else 
+        {
+            Debug.Log("not a match");
+            // put cards on Swap layer and swap
+            card1.SetSortingLayer("Swap");
+            card2.SetSortingLayer("Swap");
+            float swapTime = 1f;
+            // pause and look at cards
+            yield return new WaitForSeconds(swapTime);
+
+
+            iTween.MoveTo(card1.gameObject, card2.transform.position, swapTime);
+            iTween.MoveTo(card2.gameObject, card1.transform.position, swapTime);
+            // pause for movement
+            yield return new WaitForSeconds(swapTime);
+
+            //return back to Foreground layer
+            card1.SetSortingLayer("Foreground");
+            card2.SetSortingLayer("Foreground");
+            card1.setFaceVisible(false);
+            card2.setFaceVisible(false);
+        }
+        card1 = null;
+        card2 = null;
+    }
+
+    public void OnResetButtonPressed()
+    {
+        Reset();
+    }
+
+    private void Reset()
+    {
+        score = 0;
+        scoreText.text = "Score: " + score;
+        card1 = null;
+        card2 = null;
+
+        // turn cards face down
+        foreach(Card card in cards)
+        {
+            card.setFaceVisible(false);
+        }
+        //randomize card images
+        AssignImagesToCards();
+    }
+
+
+
 }

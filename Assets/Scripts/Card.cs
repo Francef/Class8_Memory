@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,7 +23,11 @@ public class Card : MonoBehaviour
     }
     private void OnMouseDown()
     {
-        setFaceVisible(true);
+        if (cardBack.activeSelf == true)
+        {
+            Messenger<Card>.Broadcast(GameEvent.CARD_CLICKED, this);
+        }
+            
     }
     // Start is called before the first frame update
     void Start()
@@ -34,5 +39,9 @@ public class Card : MonoBehaviour
     void Update()
     {
         
+    }
+    public void SetSortingLayer(String layer)
+    {
+        spriteRenderer.sortingLayerName = layer;
     }
 }
