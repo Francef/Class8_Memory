@@ -47,3 +47,6 @@ TagManager:
   - name: Foreground
     uniqueID: 1770894597
     locked: 0
+  - name: Swap
+    uniqueID: 476196117
+    locked: 0
